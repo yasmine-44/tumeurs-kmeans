@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<header class="topbar"><div class="topbar-in">
+<header class="topbar"><div class="topbar-in"> 
   <p class="brand-title">Qui se ressemble, K-means les assemble !</p>
   <nav class="nav"><a href="#noyau">Le noyau</a><a href="#mesures">Mesures</a><a href="#donnees">Données</a><a href="#atelier">Atelier</a><a href="#resultats">Résultats</a></nav>
 </div></header>
@@ -91,7 +91,7 @@
           <button type="button" class="btn primary" id="step-play">▶ Lecture</button>
           <button type="button" class="btn" id="step-next">Suivant →</button>
         </div>
-        <div class="readouts"><div class="readout b"><b id="r-b">–</b><span>pts groupe turquoise</span></div><div class="readout m"><b id="r-m">–</b><span>pts groupe rouge</span></div></div>
+        <div class="readouts"><div class="readout b"><b id="r-b">–</b><span>pts groupe 1 (vert)</span></div><div class="readout m"><b id="r-m">–</b><span>pts groupe 2 (violet)</span></div></div>
         <p class="hint" id="step-count"></p>
         <p class="verdict" id="verdict"></p>
         <div class="actions" style="margin-top:14px"><button type="button" class="btn" id="edit-centroids">✎ Modifier les centroïdes de départ</button><button type="button" class="btn" id="auto-run">Départ automatique</button></div>
