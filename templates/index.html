@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bénigne ou maligne ? Lire une tumeur dans ses cellules</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <p class="brand-title">Qui se ressemble, K-means les assemble !</p>
+  <nav class="nav"><a href="#noyau">Le noyau</a><a href="#mesures">Mesures</a><a href="#donnees">Données</a><a href="#atelier">Atelier</a><a href="#resultats">Résultats</a></nav>
+</div></header>
+<section class="cover" id="top"><div class="cover-in">
+  <div class="cover-copy">
+    <h1>Lire une tumeur dans la <em>forme</em> de ses cellules.</h1>
+    <span hidden id="n-benin">357</span><span hidden id="n-malin">212</span>
+    <a class="cta" href="#atelier">Entrer dans l’atelier K-means <span aria-hidden="true">→</span></a>
+  </div>
+  <figure class="scope">
+    <div class="scope-frame">
+      <div class="scope-lens" id="lens"><canvas id="field" role="img" aria-label="Champ de microscope : 569 noyaux cellulaires dessinés à partir de leurs mesures, vert pour les bénins, violet pour les malins"></canvas><i class="cross h"></i><i class="cross v"></i></div>
+      
+    </div>
+    <figcaption>
+      <span><i class="dot b"></i>bénin</span><span><i class="dot m"></i>malin</span>
+      <button type="button" id="field-replay">↻ Rejouer le tri</button>
+    </figcaption>
+  </figure>
+</div></section>
+
+<section class="plate" id="noyau">
+  <div class="plate-head"><span class="plate-no">Planche 01 · Observation</span><h2>À quoi ressemble un noyau suspect ?</h2><p>Voici le noyau « moyen » de chaque famille, redessiné à partir des moyennes du jeu de données. La différence se voit déjà à l’œil nu.</p></div>
+  <div class="explain"><span class="ico">?</span><p><b>C’est quoi un noyau ?</b> C’est le « centre de commande » d’une cellule. Quand une cellule devient dangereuse, son noyau change de forme : il grossit et son contour devient irrégulier. Les médecins observent ça au microscope.</p></div>
+  <div class="card nuclei">
+    <div class="nucleus b"><canvas id="nuc-b" role="img" aria-label="Noyau bénin moyen"></canvas><h3>Noyau bénin moyen</h3><small>régulier · compact</small></div>
+    <div class="nucleus m"><canvas id="nuc-m" role="img" aria-label="Noyau malin moyen"></canvas><h3>Noyau malin moyen</h3><small>grand · irrégulier</small></div>
+  </div>
+  <div class="card" style="margin-top:14px;overflow:hidden"><table class="compare" id="compare"></table></div>
+</section>
+
+<section class="plate" id="mesures">
+  <div class="plate-head"><span class="plate-no">Planche 02 · Les variables</span><h2>Dix mesures, dix indices.</h2><p>La barre indique à quel point une mesure sépare bénin et malin (d de Cohen). Décochez une mesure pour la retirer de l’analyse : tout est recalculé.</p></div>
+  <div class="explain"><span class="ico">?</span><p><b>Pourquoi 10 mesures ?</b> Un seul indice ne suffit pas pour savoir si une cellule est dangereuse. L’ordinateur en combine dix : taille, forme, texture… Plus la barre est longue, plus la mesure aide à faire la différence.</p></div>
+  <div class="card measures">
+    <div class="measures-top"><span class="hint">Un d supérieur à 0,8 est considéré comme un grand écart.</span><span><button type="button" class="link" id="all-on">Tout cocher</button> &nbsp;/&nbsp; <button type="button" class="link" id="all-off">Tout décocher</button></span></div>
+    <div id="feature-list"></div>
+    <div class="measures-foot"><span class="hint" id="status" role="status">Chargement…</span><span class="hint">Les mesures sont standardisées avant le calcul.</span></div>
+  </div>
+</section>
+
+<section class="plate" id="donnees">
+  <div class="plate-head"><span class="plate-no">Planche 03 · Les données</span><h2>Les données brutes.</h2><p>Voici les 569 tumeurs du jeu de données, avec leur diagnostic et les mesures calculées sur chacune.</p></div>
+  <details class="annex" open><summary>Données brutes</summary><div class="in"><div class="table-scroll" style="margin-top:0"><table class="data" id="data-table"></table></div><div class="pager"><button type="button" id="prev" class="btn">←</button><span id="page-info"></span><button type="button" id="next" class="btn">→</button></div></div></details>
+</section>
+
+<section class="plate" id="atelier">
+  <div class="plate-head"><span class="plate-no">Planche 04 · L’atelier</span><h2>Place les centroïdes, regarde K-means travailler.</h2></div>
+  <div class="explain"><span class="ico">?</span><p><b>K-means, c’est quoi ?</b> L’ordinateur place 2 points au hasard (les centroïdes), puis range chaque cellule avec le point le plus proche. Il déplace ensuite les points au milieu de leur groupe, et recommence jusqu’à ce que plus rien ne bouge. <b>Il ne sait jamais</b> quelles tumeurs sont malignes : il regroupe juste celles qui se ressemblent.</p></div>
+  <div class="bench">
+    <div class="card stage-card">
+      <div class="stage-bar"><span class="pill" id="stage-pill">Étape 1 · Placer les centroïdes</span><span class="stage-cap" id="stage-cap"></span></div>
+      <div class="canvas-box loading"><canvas id="stage" role="img" aria-label="Carte des tumeurs avec les deux centroïdes"></canvas></div>
+      <div class="stage-legend" id="stage-legend"></div>
+    </div>
+    <div class="card panel">
+      <div id="panel-place">
+        <h3>Centroïdes de départ</h3>
+        <p class="hint">Glisse ① et ② directement sur la carte, ou saisis leurs coordonnées. La ligne pointillée sépare les tumeurs qui iront à chacun.</p>
+        <div class="centroid"><span class="cbadge c1">1</span><label class="field">Axe 1<input type="number" step="0.1" id="c0x"></label><label class="field">Axe 2<input type="number" step="0.1" id="c0y"></label></div>
+        <div class="centroid"><span class="cbadge c2">2</span><label class="field">Axe 1<input type="number" step="0.1" id="c1x"></label><label class="field">Axe 2<input type="number" step="0.1" id="c1y"></label></div>
+        <div class="presets">
+          <button type="button" class="chip" data-preset="pp">Tirage K-means++</button>
+          <button type="button" class="chip" data-preset="good">Bien écartés</button>
+          <button type="button" class="chip" data-preset="bad">Très proches</button>
+          <button type="button" class="chip" data-preset="rand">Au hasard</button>
+        </div>
+        <button type="button" class="btn primary block" id="launch">Lancer K-means depuis ces centroïdes →</button>
+      </div>
+      <div id="panel-run" hidden>
+        <span class="step-kicker" id="step-kicker">Départ</span>
+        <h3 class="step-title" id="step-title">Initialisation</h3>
+        <p class="step-desc" id="step-desc"></p>
+        <div class="progress"><i id="step-bar"></i></div>
+        <div class="actions">
+          <button type="button" class="btn" id="step-reset" title="Revenir au début">↺</button>
+          <button type="button" class="btn" id="step-prev">← Précédent</button>
+          <button type="button" class="btn primary" id="step-play">▶ Lecture</button>
+          <button type="button" class="btn" id="step-next">Suivant →</button>
+        </div>
+        <div class="readouts"><div class="readout b"><b id="r-b">–</b><span>pts groupe turquoise</span></div><div class="readout m"><b id="r-m">–</b><span>pts groupe rouge</span></div></div>
+        <p class="hint" id="step-count"></p>
+        <p class="verdict" id="verdict"></p>
+        <div class="actions" style="margin-top:14px"><button type="button" class="btn" id="edit-centroids">✎ Modifier les centroïdes de départ</button><button type="button" class="btn" id="auto-run">Départ automatique</button></div>
+      </div>
+      <p class="status" id="stage-status" role="status"></p>
+    </div>
+  </div>
+</section>
+
+<section class="plate" id="resultats">
+  <div class="plate-head"><span class="plate-no">Planche 05 · Résultats</span><h2>Deux groupes, un diagnostic.</h2><p>Une fois K-means terminé, on ouvre l’enveloppe : que valent les groupes face au vrai diagnostic ?</p></div>
+<div class="explain"><span class="ico">?</span><p><b>Comment lire la carte ?</b> Chaque point est une tumeur, et sa couleur est celle du groupe choisi par l'ordinateur. Un rond est une tumeur bénigne, un losange une tumeur maligne. On voit que l'ordinateur a presque séparé les deux familles, sans jamais connaître le diagnostic.</p></div>
+  <div class="card lock" id="results-lock"><p>Les résultats n’existent pas encore : K-means n’a pas tourné.</p><a class="btn" href="#atelier">← Lancer K-means dans l’atelier</a></div>
+  <div id="results-body" hidden>
+  <div class="card map-card"><div class="tag">Carte ACP · couleur = groupe K-means · rond = bénin, losange = malin</div><div style="position:relative"><canvas id="scatter" role="img" aria-label="Nuage de points des tumeurs"></canvas><div id="tip" class="tip" hidden></div></div></div>
+  <div class="legend" id="legend"></div>
+  
+
+
+
+<section class="plate" id="methode">
+  <div class="protocol" style="grid-template-columns:1fr">
+       <div class="note"><h3>K-means ne donne pas le diagnostic.</h3>
+         <p>L’algorithme ne voit jamais le diagnostic et ne le donne pas : il sert uniquement à classer les tumeurs en groupes selon leurs ressemblances.</p>
+         <p>Le vrai diagnostic sert seulement ensuite à vérifier si les groupes formés correspondent bien aux tumeurs bénignes et malignes.</p>
+         <p class="src">Source : Breast Cancer Wisconsin (Diagnostic), UCI Machine Learning Repository — mesures calculées sur des images de ponction à l’aiguille fine.</p></div>
+</section>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>      
