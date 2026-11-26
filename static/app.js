@@ -1,13 +1,13 @@
 "use strict";
-/* turquoise = bénin, rouge/framboise = malin. Aucune dépendance : graphiques dessinés en canvas. */
+/* vert = bénin, violet = malin. Aucune dépendance : graphiques dessinés en canvas. */
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const INK = cssv("--ink"), MUTED = cssv("--muted"), LINE = cssv("--line"), LINE_SOFT = cssv("--line-soft");
-const BENIN = cssv("--benin"), MALIN = cssv("--malin");
-const COLORS = [BENIN, MALIN];               // groupe 1 = le moins malin (turquoise), groupe 2 = le plus malin (rouge)
+const BENIN = cssv("--benin") || "#DDF36B", MALIN = cssv("--malin") || "#5b58b4";
+const COLORS = [BENIN, MALIN];               // groupe 1 = le moins malin (vert), groupe 2 = le plus malin (violet)
 const GREY = "#cdb68d";                      // couleur des tumeurs avant l'affectation K-means
-const FONT ="12px 'Rubik', sans-serif" ;
+const FONT = "12px 'Rubik', sans-serif";
 
 const state = {
   all: [], selected: [], result: null, auto: null, frames: [], stepIndex: 0, playTimer: null,
@@ -53,44 +53,29 @@ function ticks(min, max, n = 6) {
   return out;
 }
 
-/* ---------- dessin d'un noyau cellulaire ---------- */
+/* ---------- dessin d'un noyau : formes et couleurs des SVG (bénin = vert, malin = violet) ---------- */
 function rng(seed) {
   let s = (seed * 2654435761) >>> 0 || 1;
   return () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296;
 }
 const irregularity = cpts => clamp(0.05 + cpts * 2.2, 0.05, 0.45);
 
-/* r : rayon en pixels ; irr : irrégularité du contour (points concaves) ; texture : grain de chromatine */
-function drawCell(ctx, x, y, r, irr, texture, malin, seed, alpha = 0.9) {
-  const rand = rng(seed + 1);
-  const ph = [rand() * 6.28, rand() * 6.28, rand() * 6.28], am = [0.5 + rand() * 0.5, 0.4 + rand() * 0.6, 0.3 + rand() * 0.7];
-  const pts = [];
-  const n = 44;
-  for (let i = 0; i < n; i++) {
-    const a = i / n * Math.PI * 2;
-    const wob = Math.sin(3 * a + ph[0]) * am[0] * 0.5 + Math.sin(6 * a + ph[1]) * am[1] * 0.35 + Math.sin(9 * a + ph[2]) * am[2] * 0.3;
-    const rr = r * (1 + irr * wob);
-    pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr]);
-  }
-  const [c0, c1, edge] = malin ? ["#dcc8ff", "#8e44ec", "#4a1590"] : ["#f6ffc2", "#DDF36B", "#7d8f12"];
-  const g = ctx.createRadialGradient(x - r * 0.25, y - r * 0.25, r * 0.1, x, y, r * (1 + irr));
-  g.addColorStop(0, c0); g.addColorStop(0.55, c1); g.addColorStop(1, edge);
+const SHAPE_BENIN = { w: 67.76, h: 62.8, fill: "#ddf36b",
+  path: new Path2D("M67.76,31.54c0,9.05-3.61,21.69-9.87,27.41-3.87,3.54-8.18,5.13-13.6,2.59-14.24-6.67-16.44.98-23.02,1.24-.34.01-.67.02-1,.02-3.5,0-6.21-.91-9.66-4.49C7.49,55.07,0,46.34,0,31.72v-.32C.09,17.86,18.2.54,35.23,0h1.48c10.02.27,27.59,10.99,30.65,26.83.27,1.39.4,2.99.4,4.71Z") };
+const SHAPE_MALIN = { w: 72.42, h: 63.29, fill: "#6b5ddb",
+  path: new Path2D("M47.77,62.01c-14.24-6.67-16.43.98-23.02,1.24-4,.16-7.57,0-10.66-4.48-2.69-3.9.43-11.38-6.11-16.35-2.99-2.27-7.37-4.51-7.85-8.45-1.69-13.83,13.98-12.44,21.01-19.91C25.97,7.68,29.38-2.27,40.19.47c5.08,1.29,6.7,7.08,8.72,11.45,4.1,9.95,21.97,2.14,23.46,14.41.5,4.08-2.91,7.25-5.67,9.63-9.39,8.08,2.11,16.65-5.33,23.46-3.87,3.54-8.18,5.13-13.6,2.59Z") };
+
+/* r : rayon en pixels (la forme occupe un cercle de diamètre ≈ 2r) ; les autres paramètres sont gardés pour compatibilité */
+function drawCell(ctx, x, y, r, irr, texture, malin, seed, alpha = 1) {
+  const sh = malin ? SHAPE_MALIN : SHAPE_BENIN, rand = rng(seed + 1);
+  const rot = (rand() - 0.5) * Math.PI * 2;      // rotation aléatoire : la forme reste identique
+  const k = (2 * r * (malin ? 1.1 : 1)) / sh.w;
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot); ctx.scale(k, k); ctx.translate(-sh.w / 2, -sh.h / 2);
   ctx.globalAlpha = alpha;
-  ctx.beginPath();
-  pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
-  ctx.closePath();
-  ctx.fillStyle = g; ctx.fill();
-  ctx.lineWidth = Math.max(0.8, r * 0.07); ctx.strokeStyle = edge; ctx.stroke();
-  if (r > 5) {                                   // grains de chromatine : plus nombreux si la texture est hétérogène
-    const specks = 2 + Math.round(texture / 4);
-    ctx.fillStyle = edge;
-    for (let i = 0; i < specks; i++) {
-      const a = rand() * 6.28, d = Math.sqrt(rand()) * r * 0.62;
-      ctx.globalAlpha = alpha * 0.55;
-      ctx.beginPath(); ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, Math.max(0.7, r * (0.05 + rand() * 0.05)), 0, 6.28); ctx.fill();
-    }
-  }
-  ctx.globalAlpha = 1;
+  ctx.lineJoin = "round"; ctx.lineWidth = 2.2 / k; ctx.strokeStyle = "#fff"; ctx.stroke(sh.path);   // fin liseré blanc entre noyaux voisins
+  ctx.fillStyle = sh.fill; ctx.fill(sh.path);
+  ctx.restore();
 }
 
 /* ---------- page de garde : champ de microscope, du mélange au tri ---------- */
@@ -143,7 +128,7 @@ function drawFieldAt(t) {
   ctx.save(); ctx.translate(w / 2, h / 2);
   for (const i of cells.order) {
     const c = cells[i], e = ease(clamp((t - c.delay * 0.4) / 0.6, 0, 1));
-    drawCell(ctx, c.sx + (c.gx - c.sx) * e, c.sy + (c.gy - c.sy) * e, c.r, c.irr, c.tex, c.malin === 1, c.id, 0.9);
+    drawCell(ctx, c.sx + (c.gx - c.sx) * e, c.sy + (c.gy - c.sy) * e, c.r, c.irr, c.tex, c.malin === 1, c.id, 1);
   }
   ctx.restore();
 }
@@ -173,7 +158,7 @@ function drawNuclei() {
   for (const [sel, field, malin] of [["#nuc-b", "mean_benin", false], ["#nuc-m", "mean_malin", true]]) {
     const { ctx, w, h } = setup($(sel));
     const k = w * 0.0185;
-    drawCell(ctx, w / 2, h / 2, f("radius")[field] * k, irregularity(f("concave_points")[field]), f("texture")[field], malin, malin ? 77 : 12, 0.95);
+    drawCell(ctx, w / 2, h / 2, f("radius")[field] * k, irregularity(f("concave_points")[field]), f("texture")[field], malin, malin ? 77 : 12, 1);
   }
   const rows = [["radius", "Rayon"], ["area", "Aire"], ["concavity", "Concavité"], ["concave_points", "Points concaves"], ["texture", "Texture"]];
   $("#compare").innerHTML = `<thead><tr><th>Mesure moyenne</th><th>Bénin</th><th>Malin</th><th>Écart</th></tr></thead><tbody>` +
@@ -218,13 +203,13 @@ function drawGrid(vp, axes) {
   ctx.lineWidth = 1; ctx.font = "10px 'Rubik', sans-serif";
   ctx.fillStyle = MUTED; ctx.textAlign = "center"; ctx.textBaseline = "top";
   for (const t of ticks(b.x0, b.x1)) {
-    ctx.strokeStyle = t === 0 ? "#0f2a3d33" : LINE_SOFT;
+    ctx.strokeStyle = t === 0 ? "#14142b44" : LINE_SOFT;
     ctx.beginPath(); ctx.moveTo(sx(t), pad.t); ctx.lineTo(sx(t), h - pad.b); ctx.stroke();
     ctx.fillText(nf(t, 0), sx(t), h - pad.b + 5);
   }
   ctx.textAlign = "right"; ctx.textBaseline = "middle";
   for (const t of ticks(b.y0, b.y1)) {
-    ctx.strokeStyle = t === 0 ? "#0f2a3d33" : LINE_SOFT;
+    ctx.strokeStyle = t === 0 ? "#14142b44" : LINE_SOFT;
     ctx.beginPath(); ctx.moveTo(pad.l, sy(t)); ctx.lineTo(w - pad.r, sy(t)); ctx.stroke();
     ctx.fillText(nf(t, 0), pad.l - 6, sy(t));
   }
@@ -235,7 +220,7 @@ function marker(ctx, x, y, kind, text, color) {
   ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2);
   if (kind === "solid") { ctx.fillStyle = INK; ctx.fill(); ctx.fillStyle = "#fff"; }
   else { ctx.fillStyle = "#ffffff"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = color || INK; ctx.stroke(); ctx.fillStyle = color || INK; }
-  ctx.font = "500 13px 'Rubik', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = "600 13px 'Rubik', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillText(text, x, y + 0.5); ctx.font = FONT;
 }
 
@@ -264,9 +249,7 @@ function drawStage() {
     }
     pts.forEach((p, i) => {                      // avant K-means : toutes les tumeurs sont grises
       ctx.globalAlpha = 0.72; ctx.fillStyle = startColor(i, pts.length);
-      
-      ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), 3.4, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#0f2a3d66"; ctx.lineWidth = 0.7; ctx.stroke();
-      
+      ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), 3.4, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#14142b66"; ctx.lineWidth = 0.7; ctx.stroke();
     });
     ctx.globalAlpha = 1;
     marker(ctx, sx(c1[0]), sy(c1[1]), "solid", "1");
@@ -274,12 +257,12 @@ function drawStage() {
   } else {
     const frame = state.frames[state.stepIndex], labels = frame.labels;
     pts.forEach((p, i) => {
-      ctx.globalAlpha = 0.75; ctx.fillStyle = labels ? COLORS[labels[i] % 2] : startColor(i, pts.length);
-      ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), 3.4, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#0f2a3d66"; ctx.lineWidth = 0.7; ctx.stroke();
+      ctx.globalAlpha = 0.85; ctx.fillStyle = labels ? COLORS[labels[i] % 2] : startColor(i, pts.length);
+      ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), 3.4, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#14142b66"; ctx.lineWidth = 0.7; ctx.stroke();
     });
     ctx.globalAlpha = 1;
     for (let c = 0; c < 2; c++) {                // trajectoire de chaque centre
-      ctx.setLineDash([4, 4]); ctx.strokeStyle = COLORS[c]; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.setLineDash([4, 4]); ctx.strokeStyle = c === 0 ? "#8ea000" : COLORS[c]; ctx.lineWidth = 2; ctx.beginPath();
       let first = true, last = null;
       for (let i = 0; i <= state.stepIndex; i++) {
         const q = state.frames[i].centroids[c];
@@ -288,7 +271,7 @@ function drawStage() {
       }
       ctx.stroke(); ctx.setLineDash([]);
       const q = frame.centroids[c];
-      marker(ctx, sx(q[0]), sy(q[1]), "ring", c === 0 ? "G1" : "G2", COLORS[c]);
+      marker(ctx, sx(q[0]), sy(q[1]), "ring", c === 0 ? "G1" : "G2", c === 0 ? "#8ea000" : COLORS[c]);
     }
   }
 }
@@ -436,7 +419,6 @@ async function runFrom(init) {
     if (token !== state.token) return;
     applyRun(res, steps, init ? body_init(init) : null);
     status.textContent = "";
-    
   } catch (err) { status.textContent = err.message; }
   $("#launch").disabled = false;
 }
@@ -444,15 +426,17 @@ const body_init = init => init.map(c => [+c[0].toFixed(3), +c[1].toFixed(3)]);
 
 function showResults(on) {
   $("#results-lock").hidden = on; $("#results-body").hidden = !on;
+  $("#tester-lock").hidden = on; $("#tester-body").hidden = !on;
 }
 
 function applyRun(res, steps, init) {
   state.result = res; state.init = init; state.frames = steps.frames; state.stepIndex = 0;
   state.mode = "run"; state.newPoint = null; state.ran = true;
+  $("#predict-result").hidden = true;
   renderStageChrome(); showResults(true); renderResults();   // les résultats n'apparaissent qu'après un lancement
 }
 
-/* ---------- résultats ---------- */
+/* ---------- résultats : rond = bénin, étoile = malin ---------- */
 function drawScatter() {
   const r = state.result; if (!r) return;
   const vp = viewport($("#scatter")); const { ctx, sx, sy } = vp;
@@ -460,14 +444,19 @@ function drawScatter() {
   state.hits = [];
   for (const p of r.points) {
     const x = sx(p[0]), y = sy(p[1]);
-    ctx.globalAlpha = 0.74; ctx.fillStyle = COLORS[p[2] % 2];
+    ctx.globalAlpha = 0.85; ctx.fillStyle = COLORS[p[2] % 2];
     ctx.beginPath();
-    if (p[3] === 1) { ctx.moveTo(x, y - 5.5); ctx.lineTo(x + 5.5, y); ctx.lineTo(x, y + 5.5); ctx.lineTo(x - 5.5, y); ctx.closePath(); }
-    else ctx.arc(x, y, 4, 0, Math.PI * 2);
-    ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = "#0f2a3d88"; ctx.lineWidth = 0.8; ctx.stroke();
+    if (p[3] === 1) {
+      for (let k = 0; k < 10; k++) {
+        const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? 3.4 : 7.5;
+        k ? ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr) : ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      }
+      ctx.closePath();
+    } else ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = "#14142b88"; ctx.lineWidth = 0.8; ctx.stroke();
     state.hits.push({ x, y, p });
   }
-  r.centroids.forEach((c, i) => marker(ctx, sx(c[0]), sy(c[1]), "ring", `G${i + 1}`, COLORS[i % 2]));
+  r.centroids.forEach((c, i) => marker(ctx, sx(c[0]), sy(c[1]), "ring", `G${i + 1}`, i === 0 ? "#8ea000" : COLORS[i % 2]));
   if (state.newPoint) {
     const x = sx(state.newPoint[0]), y = sy(state.newPoint[1]);
     ctx.beginPath();
@@ -495,21 +484,48 @@ function renderResults() {
   $("#legend").innerHTML = r.clusters.map(c =>
     `<span><i class="swatch" style="background:${COLORS[c.id % 2]}"></i>Groupe ${c.id + 1} : ${c.size} tumeurs, ${pct(c.pct_malin)} malignes</span>`).join("") +
     `<span>${r.custom ? "Départ : tes centroïdes" : "Départ : K-means++ automatique"}</span>`;
-  drawScatter();
+  renderPredictFields(); drawScatter();
 }
 
+/* ---------- formulaire de test ---------- */
+function renderPredictFields() {
+  $("#predict-fields").innerHTML = state.selected.map(key => {
+    const f = state.all.find(x => x.key === key);
+    const v = state.values[key] !== undefined ? state.values[key] : +f.mean.toPrecision(4);
+    return `<label class="field" title="${f.description}">${f.label}<input type="number" step="any" min="0" name="${key}" value="${v}" required><small>de ${fmt(f.min)} à ${fmt(f.max)}</small></label>`;
+  }).join("");
+}
 
+function fillProfile(field) {
+  for (const key of state.selected) state.values[key] = +state.all.find(x => x.key === key)[field].toPrecision(4);
+  renderPredictFields();
+}
 
-/* ---------- annexes ---------- */
+async function submitPredict(e) {
+  e.preventDefault();
+  const values = {};
+  for (const key of state.selected) { values[key] = parseFloat($(`#predict-fields input[name="${key}"]`).value); state.values[key] = values[key]; }
+  const box = $("#predict-result");
+  try {
+    const body = { features: state.selected, values };
+    if (state.init) body.init_centers = state.init;
+    const r = await api("/api/predict", body);
+    state.newPoint = r.point; drawScatter();
+    box.className = "result " + (r.cluster === 1 ? "m" : "b");
+    box.innerHTML = `<p><strong>Groupe ${r.cluster + 1}</strong> (${r.cluster === 1 ? "violet" : "vert"}) : ${pct(r.pct_malin)} des ${r.size} tumeurs de ce groupe sont malignes.</p>
+      <p class="hint">Distance aux centres (unités standardisées) : ${r.distances.map((d, i) => `groupe ${i + 1} = ${nf(d, 2)}`).join(", ")}. L’étoile noire marque l’échantillon sur la carte des résultats.</p>`;
+  } catch (err) { box.className = "result error"; box.textContent = err.message; }
+  box.hidden = false;
+}
+
+/* ---------- données brutes ---------- */
 async function loadTable() {
   const r = await api(`/api/tumeurs?limit=${state.pageSize}&offset=${state.offset}`);
   $("#data-table").innerHTML = `<thead><tr><th>N°</th><th>Diagnostic</th>${state.all.map(c => `<th>${c.label}</th>`).join("")}</tr></thead><tbody>` +
-    r.rows.map(row => `<tr><td>${row.id}</td><td style="color:${row.diagnostic === "M" ? MALIN : BENIN};font-weight:600">${row.diagnostic === "M" ? "Malin" : "Bénin"}</td>${state.all.map(c => `<td>${fmt(row[c.key])}</td>`).join("")}</tr>`).join("") + "</tbody>";
+    r.rows.map(row => `<tr><td>${row.id}</td><td style="color:${row.diagnostic === "M" ? MALIN : "#6d7f00"};font-weight:600">${row.diagnostic === "M" ? "Malin" : "Bénin"}</td>${state.all.map(c => `<td>${fmt(row[c.key])}</td>`).join("")}</tr>`).join("") + "</tbody>";
   $("#page-info").textContent = `${state.offset + 1} à ${Math.min(state.offset + state.pageSize, r.total)} sur ${r.total}`;
   $("#prev").disabled = state.offset === 0; $("#next").disabled = state.offset + state.pageSize >= r.total;
 }
-
-
 
 /* ---------- recalcul quand les variables changent ---------- */
 let timer;
@@ -525,9 +541,9 @@ async function refresh() {
     const [res, steps] = await Promise.all([api("/api/cluster", body), api("/api/steps", body)]);
     if (token !== state.token) return;
     stopPlay();
-    state.auto = { res, steps }; 
+    state.auto = { res, steps };
     state.result = res; state.init = null; state.newPoint = null; state.mode = "place"; state.ran = false;
-    computeBounds(res.points); 
+    computeBounds(res.points);
     state.draft = steps.frames[0].centroids.map(c => [...c]);
     const pr = $("#predict-result"); if (pr) pr.hidden = true;
     status.textContent = `${state.selected.length} mesures utilisées · tout est à jour`;
@@ -563,9 +579,11 @@ async function init() {
   $("#step-next").addEventListener("click", () => moveStep(1));
   $("#step-reset").addEventListener("click", () => { stopPlay(); state.stepIndex = 0; renderRun(); });
   $("#step-play").addEventListener("click", togglePlay);
+  $("#predict-form").addEventListener("submit", submitPredict);
+  $("#fill-benin").addEventListener("click", () => fillProfile("mean_benin"));
+  $("#fill-malin").addEventListener("click", () => fillProfile("mean_malin"));
   $("#prev").addEventListener("click", () => { state.offset = Math.max(0, state.offset - state.pageSize); loadTable(); });
   $("#next").addEventListener("click", () => { state.offset += state.pageSize; loadTable(); });
-  
   window.addEventListener("resize", () => { clearTimeout(init.rt); init.rt = setTimeout(redrawAll, 140); });
   bindStage(); bindScatterHover();
   playField();
@@ -575,4 +593,4 @@ async function init() {
 (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(() => init()).catch(err => {
   const s = $("#status"); if (s) s.textContent = "Impossible de charger les données : " + err.message;
   const b = $("#stage") && $("#stage").parentElement; if (b) b.classList.remove("loading");
-}); 
+});

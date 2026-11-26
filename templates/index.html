@@ -3,30 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bénigne ou maligne ? Lire une tumeur dans ses cellules</title>
+<title>Qui se ressemble, K-means les assemble !</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<header class="topbar"><div class="topbar-in"> 
-  <p class="brand-title">Qui se ressemble, K-means les assemble !</p>
-  <nav class="nav"><a href="#noyau">Le noyau</a><a href="#mesures">Mesures</a><a href="#donnees">Données</a><a href="#atelier">Atelier</a><a href="#resultats">Résultats</a></nav>
+
+<header class="topbar"><div class="topbar-in">
+  <nav class="nav"><a href="#noyau">Le noyau</a><a href="#mesures">Mesures</a><a href="#donnees">Données</a><a href="#atelier">Atelier</a><a href="#resultats">Résultats</a><a href="#tester">Tester</a></nav>
 </div></header>
+
 <section class="cover" id="top"><div class="cover-in">
   <div class="cover-copy">
-    <h1>Lire une tumeur dans la <em>forme</em> de ses cellules.</h1>
+    <h1>Qui se ressemble, <em>K-means les assemble !</em></h1>
     <span hidden id="n-benin">357</span><span hidden id="n-malin">212</span>
     <a class="cta" href="#atelier">Entrer dans l’atelier K-means <span aria-hidden="true">→</span></a>
   </div>
   <figure class="scope">
     <div class="scope-frame">
-      <div class="scope-lens" id="lens"><canvas id="field" role="img" aria-label="Champ de microscope : 569 noyaux cellulaires dessinés à partir de leurs mesures, vert pour les bénins, violet pour les malins"></canvas><i class="cross h"></i><i class="cross v"></i></div>
-      
+      <div class="scope-lens" id="lens"><canvas id="field" role="img" aria-label="Champ de microscope : 569 noyaux cellulaires dessinés à partir de leurs mesures, tumeurs bénignes en vert, tumeurs malignes en violet"></canvas></div>
     </div>
     <figcaption>
-      <span><i class="dot b"></i>bénin</span><span><i class="dot m"></i>malin</span>
+      <span><i class="dot b"></i>Bénin</span><span><i class="dot m"></i>Malin</span>
       <button type="button" id="field-replay">↻ Rejouer le tri</button>
     </figcaption>
   </figure>
@@ -54,7 +54,7 @@
 
 <section class="plate" id="donnees">
   <div class="plate-head"><span class="plate-no">Planche 03 · Les données</span><h2>Les données brutes.</h2><p>Voici les 569 tumeurs du jeu de données, avec leur diagnostic et les mesures calculées sur chacune.</p></div>
-  <details class="annex" open><summary>Données brutes</summary><div class="in"><div class="table-scroll" style="margin-top:0"><table class="data" id="data-table"></table></div><div class="pager"><button type="button" id="prev" class="btn">←</button><span id="page-info"></span><button type="button" id="next" class="btn">→</button></div></div></details>
+  <details class="annex" open><summary>Données brutes</summary><div class="in"><div class="table-scroll"><table class="data" id="data-table"></table></div><div class="pager"><button type="button" id="prev" class="btn">←</button><span id="page-info"></span><button type="button" id="next" class="btn">→</button></div></div></details>
 </section>
 
 <section class="plate" id="atelier">
@@ -103,25 +103,34 @@
 
 <section class="plate" id="resultats">
   <div class="plate-head"><span class="plate-no">Planche 05 · Résultats</span><h2>Deux groupes, un diagnostic.</h2><p>Une fois K-means terminé, on ouvre l’enveloppe : que valent les groupes face au vrai diagnostic ?</p></div>
-<div class="explain"><span class="ico">?</span><p><b>Comment lire la carte ?</b> Chaque point est une tumeur, et sa couleur est celle du groupe choisi par l'ordinateur. Un rond est une tumeur bénigne, un losange une tumeur maligne. On voit que l'ordinateur a presque séparé les deux familles, sans jamais connaître le diagnostic.</p></div>
+  <div class="explain"><span class="ico">?</span><p><b>Comment lire la carte ?</b> Chaque point est une tumeur, et sa couleur est celle du groupe choisi par l’ordinateur. Un rond est une tumeur bénigne, une étoile une tumeur maligne. On voit que l’ordinateur a presque séparé les deux familles, sans jamais connaître le diagnostic.</p></div>
   <div class="card lock" id="results-lock"><p>Les résultats n’existent pas encore : K-means n’a pas tourné.</p><a class="btn" href="#atelier">← Lancer K-means dans l’atelier</a></div>
   <div id="results-body" hidden>
-  <div class="card map-card"><div class="tag">Carte ACP · couleur = groupe K-means · rond = bénin, losange = malin</div><div style="position:relative"><canvas id="scatter" role="img" aria-label="Nuage de points des tumeurs"></canvas><div id="tip" class="tip" hidden></div></div></div>
-  <div class="legend" id="legend"></div>
-  
+    <div class="card map-card"><div class="tag">Carte ACP · couleur = groupe K-means · rond = bénin, étoile = malin</div><div style="position:relative"><canvas id="scatter" role="img" aria-label="Nuage de points des tumeurs"></canvas><div id="tip" class="tip" hidden></div></div></div>
+    <div class="legend" id="legend"></div>
+  </div>
+</section>
 
-
+<section class="plate" id="tester">
+  <div class="plate-head"><span class="plate-no">Planche 06 · Expérience</span><h2>Soumettre un noyau inconnu.</h2><p>Saisis les mesures d’un nouvel échantillon : il est rattaché au groupe le plus proche et placé sur la carte.</p></div>
+  <div class="card lock" id="tester-lock"><p>Lance d’abord K-means dans l’atelier : le modèle doit exister pour y rattacher un échantillon.</p><a class="btn" href="#atelier">← Aller à l’atelier</a></div>
+  <div id="tester-body" hidden>
+    <form class="card test-form" id="predict-form" autocomplete="off"><div id="predict-fields" class="fields"></div>
+      <div class="actions"><button type="submit" class="btn primary">Analyser cet échantillon</button><button type="button" class="btn" id="fill-benin">Profil bénin moyen</button><button type="button" class="btn" id="fill-malin">Profil malin moyen</button></div></form>
+    <div id="predict-result" class="result" hidden></div>
+    <p class="caveat">K-means regroupe des ressemblances : ce n’est pas un outil de diagnostic. Aucun résultat affiché ici n’a valeur médicale.</p>
+  </div>
+</section>
 
 <section class="plate" id="methode">
-  <div class="protocol" style="grid-template-columns:1fr">
-       <div class="note"><h3>K-means ne donne pas le diagnostic.</h3>
-         <p>L’algorithme ne voit jamais le diagnostic et ne le donne pas : il sert uniquement à classer les tumeurs en groupes selon leurs ressemblances.</p>
-         <p>Le vrai diagnostic sert seulement ensuite à vérifier si les groupes formés correspondent bien aux tumeurs bénignes et malignes.</p>
-         <p class="src">Source : Breast Cancer Wisconsin (Diagnostic), UCI Machine Learning Repository — mesures calculées sur des images de ponction à l’aiguille fine.</p></div>
-</section>
+  <div class="protocol">
+    <div class="note"><h3>K-means ne donne pas le diagnostic.</h3>
+      <p>L’algorithme ne voit jamais le diagnostic et ne le donne pas : il sert uniquement à classer les tumeurs en groupes selon leurs ressemblances.</p>
+      <p>Le vrai diagnostic sert seulement ensuite à vérifier si les groupes formés correspondent bien aux tumeurs bénignes et malignes.</p>
+      <p class="src">Source : Breast Cancer Wisconsin (Diagnostic), UCI Machine Learning Repository — mesures calculées sur des images de ponction à l’aiguille fine.</p></div>
   </div>
 </section>
 
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
-</html>      
+</html>
